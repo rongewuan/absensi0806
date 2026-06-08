@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="id">
+<<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator)
+    navigator.serviceWorker.register('/sw.js');
+</script>>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Absensi Digital</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161a24;
+      --card: #1e2334;
+      --border: #2a3048;
+      --accent: #4ade80;
+      --accent2: #38bdf8;
+      --accent3: #f59e0b;
+      --danger: #f87171;
+      --text: #e8ecf4;
+      --muted: #6b7492;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ---- HEADER ---- */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100%{ opacity:1; transform:scale(1); }
+      50%{ opacity:0.5; transform:scale(1.4); }
+    }
+    .header-clock {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: var(--accent2);
+      letter-spacing: 0.05em;
+    }
+    .header-date {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.3;
+    }
+
+    /* ---- LAYOUT ---- */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    /* ---- LEFT PANEL ---- */
+    .left-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .input-group label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .input-group input, .input-group select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.65rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: 'Sora', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .input-group input:focus, .input-group select:focus {
+      border-color: var(--accent2);
+    }
+    .input-group select option {
+      background: var(--surface);
+    }
+
+    /* ---- BUTTONS ---- */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0.75rem 1.2rem;
+      border-radius: 9px;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      width: 100%;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-masuk {
+      background: var(--accent);
+      color: #0a1a0a;
+    }
+    .btn-masuk:hover { filter: brightness(1.1); }
+    .btn-keluar {
+      background: transparent;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+    .btn-keluar:hover { background: rgba(248,113,113,0.08); }
+    .btn-row { display: flex; gap: 0.6rem; }
+    .btn-row .btn { width: auto; flex:1; }
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      transition: all 0.15s;
+    }
+    .btn-sm:hover { border-color: var(--accent2); color: var(--accent2); }
+    .btn-danger-sm {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    .btn-danger-sm:hover { background: rgba(248,113,113,0.1); }
+
+    /* ---- STATUS BADGE ---- */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .badge-hadir { background: rgba(74,222,128,0.12); color: var(--accent); }
+    .badge-terlambat { background: rgba(245,158,11,0.12); color: var(--accent3); }
+    .badge-izin { background: rgba(56,189,248,0.12); color: var(--accent2); }
+    .badge-alpha { background: rgba(248,113,113,0.12); color: var(--danger); }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ---- STATS GRID ---- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      font-family: 'DM Mono', monospace;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label { font-size: 0.7rem; color: var(--muted); }
+    .s-hadir .stat-value { color: var(--accent); }
+    .s-terlambat .stat-value { color: var(--accent3); }
+    .s-izin .stat-value { color: var(--accent2); }
+    .s-alpha .stat-value { color: var(--danger); }
+
+    /* ---- TOAST ---- */
+    #toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1.2rem;
+      font-size: 0.85rem;
+      max-width: 300px;
+      transform: translateY(120%);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: var(--accent); }
+    #toast.error { border-color: var(--danger); }
+
+    /* ---- RIGHT: TABLE ---- */
+    .right-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    .table-title { font-size: 1rem; font-weight: 600; }
+    .search-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 0.5rem 0.9rem;
+      font-size: 0.85rem;
+      font-family: 'Sora', sans-serif;
+      outline: none;
+      width: 200px;
+      transition: border-color 0.2s;
+    }
+    .search-box:focus { border-color: var(--accent2); }
+    .search-box::placeholder { color: var(--muted); }
+
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 0.35rem 0.8rem;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-family: 'Sora', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(56,189,248,0.08);
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    thead th {
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.9rem 1.2rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td {
+      padding: 0.85rem 1.2rem;
+      vertical-align: middle;
+    }
+    .td-name { font-weight: 500; }
+    .td-id { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted); }
+    .td-time { font-family: 'DM Mono', monospace; color: var(--accent2); }
+    .td-actions { display: flex; gap: 6px; }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #0a1a0a;
+      flex-shrink: 0;
+    }
+    .td-user { display: flex; align-items: center; gap: 10px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+    /* ---- MODAL ---- */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 380px;
+      max-width: 90vw;
+      transform: scale(0.95);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.show .modal { transform: scale(1); }
+    .modal h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .modal-actions { display: flex; gap: 0.6rem; margin-top: 1.2rem; }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 780px) {
+      .container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span>AbsensiPro</span>
+  </div>
+  <div id="clock" class="header-clock">00:00:00</div>
+  <div class="header-date" id="header-date">Senin, 1 Januari</div>
+</header>
+
+<div class="container">
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <!-- Form Absensi -->
+    <div class="card">
+      <div class="section-label">Catat Kehadiran</div>
+      <div class="input-group">
+        <label>ID Karyawan</label>
+        <input type="text" id="empId" placeholder="cth: EMP-001" />
+      </div>
+      <div class="input-group">
+        <label>Nama Lengkap</label>
+        <input type="text" id="empName" placeholder="Nama karyawan" />
+      </div>
+      <div class="input-group">
+        <label>Departemen</label>
+        <select id="empDept">
+          <option value="">Pilih departemen…</option>
+          <option>Teknologi Informasi</option>
+          <option>Sumber Daya Manusia</option>
+          <option>Keuangan & Akuntansi</option>
+          <option>Pemasaran</option>
+          <option>Operasional</option>
+          <option>Hukum & Kepatuhan</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Status Kehadiran</label>
+        <select id="empStatus">
+          <option value="hadir">Hadir</option>
+          <option value="terlambat">Terlambat</option>
+          <option value="izin">Izin / Cuti</option>
+          <option value="alpha">Alpha</option>
+        </select>
+      </div>
+      <div class="btn-row" style="margin-top:0.5rem;">
+        <button class="btn btn-masuk" onclick="recordAbsensi()">
+          ✔ Masuk
+        </button>
+        <button class="btn btn-keluar" onclick="recordPulang()">
+          ✗ Pulang
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistik -->
+    <div class="card">
+      <div class="section-label">Statistik Hari Ini</div>
+      <div class="stats-grid">
+        <div class="stat-card s-hadir">
+          <div class="stat-value" id="stat-hadir">0</div>
+          <div class="stat-label">Hadir</div>
+        </div>
+        <div class="stat-card s-terlambat">
+          <div class="stat-value" id="stat-terlambat">0</div>
+          <div class="stat-label">Terlambat</div>
+        </div>
+        <div class="stat-card s-izin">
+          <div class="stat-value" id="stat-izin">0</div>
+          <div class="stat-label">Izin / Cuti</div>
+        </div>
+        <div class="stat-card s-alpha">
+          <div class="stat-value" id="stat-alpha">0</div>
+          <div class="stat-label">Alpha</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="card">
+      <div class="section-label">Ekspor Data</div>
+      <div class="btn-row">
+        <button class="btn btn-sm" onclick="exportCSV()">⬇ Ekspor CSV</button>
+        <button class="btn btn-sm btn-danger-sm" onclick="clearAll()">🗑 Hapus Semua</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="card">
+      <div class="table-header">
+        <span class="table-title">Daftar Kehadiran</span>
+        <input class="search-box" id="searchBox" placeholder="Cari nama atau ID…" oninput="renderTable()" />
+      </div>
+      <div class="filter-bar" style="margin-top:1rem;">
+        <button class="filter-btn active" onclick="setFilter('semua',this)">Semua</button>
+        <button class="filter-btn" onclick="setFilter('hadir',this)">Hadir</button>
+        <button class="filter-btn" onclick="setFilter('terlambat',this)">Terlambat</button>
+        <button class="filter-btn" onclick="setFilter('izin',this)">Izin</button>
+        <button class="filter-btn" onclick="setFilter('alpha',this)">Alpha</button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Karyawan</th>
+            <th>Departemen</th>
+            <th>Status</th>
+            <th>Jam Masuk</th>
+            <th>Jam Pulang</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <div class="empty-icon">📋</div>
+        Belum ada data kehadiran
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>Hapus Data Karyawan?</h3>
+    <p style="color:var(--muted);font-size:0.85rem;">Data absensi karyawan ini akan dihapus secara permanen.</p>
+    <div class="modal-actions">
+      <button class="btn btn-keluar" style="flex:1;" id="confirmDelete">Ya, Hapus</button>
+      <button class="btn" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);" onclick="closeModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+let records = JSON.parse(localStorage.getItem('absensi') || '[]');
+let currentFilter = 'semua';
+let deleteTarget = null;
+
+const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function updateClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${hh}:${mm}:${ss}`;
+  document.getElementById('header-date').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function getTime() {
+  const n = new Date();
+  return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type==='success' ? '✅ ' : '⚠️ ') + msg;
+  t.className = `show ${type}`;
+  setTimeout(() => t.className = '', 2800);
+}
+
+function save() {
+  localStorage.setItem('absensi', JSON.stringify(records));
+  renderTable();
+  updateStats();
+}
+
+function recordAbsensi() {
+  const id = document.getElementById('empId').value.trim();
+  const name = document.getElementById('empName').value.trim();
+  const dept = document.getElementById('empDept').value;
+  const status = document.getElementById('empStatus').value;
+  if (!id || !name || !dept) { showToast('Lengkapi semua data terlebih dahulu', 'error'); return; }
+  if (records.find(r => r.id === id && !r.pulang)) {
+    showToast('Karyawan ini sudah absen masuk', 'error'); return;
+  }
+  records.unshift({ id, name, dept, status, masuk: getTime(), pulang: null, ts: Date.now() });
+  clearForm();
+  save();
+  showToast(`${name} berhasil absen masuk`);
+}
+
+function recordPulang() {
+  const id = document.getElementById('empId').value.trim();
+  if (!id) { showToast('Masukkan ID karyawan', 'error'); return; }
+  const rec = records.find(r => r.id === id && !r.pulang);
+  if (!rec) { showToast('Data masuk tidak ditemukan', 'error'); return; }
+  rec.pulang = getTime();
+  clearForm();
+  save();
+  showToast(`${rec.name} berhasil absen pulang`);
+}
+
+function clearForm() {
+  ['empId','empName'].forEach(k => document.getElementById(k).value = '');
+  document.getElementById('empDept').value = '';
+  document.getElementById('empStatus').value = 'hadir';
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function getInitials(name) {
+  return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+function badgeHtml(status) {
+  const map = {
+    hadir: ['badge-hadir','Hadir'],
+    terlambat: ['badge-terlambat','Terlambat'],
+    izin: ['badge-izin','Izin / Cuti'],
+    alpha: ['badge-alpha','Alpha'],
+  };
+  const [cls, label] = map[status] || ['',''];
+  return `<span class="status-badge ${cls}"><span class="badge-dot"></span>${label}</span>`;
+}
+
+function renderTable() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  let data = records.filter(r => {
+    const matchFilter = currentFilter === 'semua' || r.status === currentFilter;
+    const matchSearch = r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = data.map((r,i) => `
+    <tr>
+      <td class="td-id">${i+1}</td>
+      <td>
+        <div class="td-user">
+          <div class="avatar">${getInitials(r.name)}</div>
+          <div>
+            <div class="td-name">${r.name}</div>
+            <div class="td-id">${r.id}</div>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:0.8rem;">${r.dept}</td>
+      <td>${badgeHtml(r.status)}</td>
+      <td class="td-time">${r.masuk}</td>
+      <td class="td-time">${r.pulang || '<span style="color:var(--muted)">—</span>'}</td>
+      <td>
+        <div class="td-actions">
+          <button class="btn-sm btn-danger-sm" onclick="confirmDelete(${r.ts})">Hapus</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateStats() {
+  const count = s => records.filter(r => r.status === s).length;
+  document.getElementById('stat-hadir').textContent = count('hadir');
+  document.getElementById('stat-terlambat').textContent = count('terlambat');
+  document.getElementById('stat-izin').textContent = count('izin');
+  document.getElementById('stat-alpha').textContent = count('alpha');
+}
+
+function confirmDelete(ts) {
+  deleteTarget = ts;
+  document.getElementById('deleteModal').classList.add('show');
+  document.getElementById('confirmDelete').onclick = () => {
+    records = records.filter(r => r.ts !== deleteTarget);
+    save();
+    closeModal();
+    showToast('Data berhasil dihapus');
+  };
+}
+
+function closeModal() {
+  document.getElementById('deleteModal').classList.remove('show');
+  deleteTarget = null;
+}
+
+function clearAll() {
+  if (!records.length) { showToast('Tidak ada data untuk dihapus', 'error'); return; }
+  deleteTarget = 'all';
+  document.getElementById('deleteModal').classList.add('show');
+  document.getElementById('confirmDelete').onclick = () => {
+    records = [];
+    save();
+    closeModal();
+    showToast('Semua data berhasil dihapus');
+  };
+}
+
+function exportCSV() {
+  if (!records.length) { showToast('Tidak ada data untuk diekspor', 'error'); return; }
+  const header = 'ID,Nama,Departemen,Status,Jam Masuk,Jam Pulang';
+  const rows = records.map(r => `${r.id},"${r.name}","${r.dept}",${r.status},${r.masuk},${r.pulang||''}`);
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `absensi_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('Data berhasil diekspor');
+}
+
+// Click outside modal to close
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Init
+renderTable();
+updateStats();
+</script>
+</body>
+</html>
